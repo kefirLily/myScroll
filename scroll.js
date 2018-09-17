@@ -1,5 +1,13 @@
 var myScroll = {
-    refresh: '', // 下拉刷新
+    refresh: function (cb) {
+        this.refreshCallback = cb;
+    }, // 下拉刷新
+    refreshNext: function () {
+        this.isRefresh = false;
+        recovery();
+    }, // 完成下拉刷新了
+    refreshCallback: function () {}, // 回调
+    isRefresh: false, // 是否处于刷新中
 };
 var dom = document.getElementsByClassName('myscroll');
 var str = '<div class="myscroll-refresh">';
@@ -24,12 +32,11 @@ for (var i = 0; i < dom.length; i++) {
     var scrollTop = 0; // 滚动条距离
     var pageY = 0;
     var isTrue = true;
-    var isRefresh = false; // 是否处于下拉刷新请求数据中
     var nY = 0; // 下拉的长度
     dom[i].addEventListener('touchmove', function (e) {
         e = e || window.event;
         scrollTop = document.documentElement.scrollTop;
-        if (isRefresh) return false;;
+        if (myScroll.isRefresh) return false;;
         if (scrollTop <= 0) {
             if (isTrue) {
                 pageY = e.touches[0].pageY;
@@ -48,6 +55,7 @@ for (var i = 0; i < dom.length; i++) {
         }
     });
     dom[i].addEventListener('touchend', function (e) {
+        if (myScroll.isRefresh) return false;;
         var self = this;
         var run = false;
         if (nY < 50) {
@@ -56,19 +64,39 @@ for (var i = 0; i < dom.length; i++) {
             this.children[0].children[1].style.display = 'none';
             this.children[0].children[2].style.display = 'inline-block';
             this.children[0].children[3].innerText = '正在刷新...';
-            isRefresh = true;
+            myScroll.isRefresh = true;
+            myScroll.refreshCallback();
         }
     });
 }
 
+// 设置边距
 function setMargin (self) {
     var run = false;
     run = setInterval(function () {
         var top = parseInt(self.children[0].style.marginTop);
-        top -= 2.2;
+        top -= 4;
         self.children[0].style.marginTop = top + 'px';
         if (top <= -60) {
             clearInterval(run);
         }
     }, 10);
 }
+
+// 回复原状
+function recovery () {
+    for (var i = 0; i < dom.length; i++) {
+        dom[i].children[0].children[0].style.display = 'inline';
+        dom[i].children[0].children[1].style.display = 'none';
+        dom[i].children[0].children[2].style.display = 'none';
+        dom[i].children[0].children[3].innerHTML = '下拉刷新...';
+        setMargin(dom[i]);
+    }
+}
+
+myScroll.refresh(function () {
+    console.log('============');
+    setTimeout(function () {
+        myScroll.refreshNext();
+    }, 2000);
+});
